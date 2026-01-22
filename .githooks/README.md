@@ -36,17 +36,14 @@ chmod +x .githooks/*
 
 **チェック内容:**
 - ブランチ名が命名規則に従っているか（エラー）
-- featureブランチがdevelopの最新から分岐しているか（警告）
-- 保護ブランチへの直接プッシュ（警告）
-- stagingプレースホルダーへのプッシュ禁止（エラー）
+- featureブランチがmainの最新から分岐しているか（警告）
+- mainへの直接プッシュ（警告）
 
 ## ブランチ命名規則
 
 | パターン | 例 |
 |----------|-----|
-| `main` | - |
-| `develop` | - |
-| `staging` | プレースホルダー |
+| `main` | 本番環境ブランチ |
 | `staging-#{PR番号}` | `staging-#4` |
 | `feature/issue-#{issue番号}` | `feature/issue-#123` |
 | `feature/issue-#{issue番号}-{説明}` | `feature/issue-#123-add-login` |

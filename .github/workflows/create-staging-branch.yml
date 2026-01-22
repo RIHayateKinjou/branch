@@ -4,11 +4,13 @@ on:
   pull_request:
     types: [opened]
     branches:
-      - staging
+      - main
 
 jobs:
   create-staging:
     runs-on: ubuntu-latest
+    # Only run for feature branches
+    if: startsWith(github.head_ref, 'feature/issue-#')
     permissions:
       contents: write
       pull-requests: write
@@ -40,11 +42,11 @@ jobs:
           if git ls-remote --heads origin "$STAGING_BRANCH" | grep -q "$STAGING_BRANCH"; then
             echo "Staging branch already exists: $STAGING_BRANCH"
           else
-            # Create staging branch from develop
-            git checkout develop
+            # Create staging branch from main
+            git checkout main
             git checkout -b "$STAGING_BRANCH"
             git push origin "$STAGING_BRANCH"
-            echo "Created branch: $STAGING_BRANCH"
+            echo "Created branch: $STAGING_BRANCH from main"
           fi
 
           echo "STAGING_BRANCH=$STAGING_BRANCH" >> $GITHUB_ENV

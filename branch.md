@@ -2,10 +2,10 @@
 
 ## 概要
 
-本リポジトリでは、4層構造のブランチフローを採用しています。
+本リポジトリでは、シンプルな2層構造のブランチフローを採用しています。
 
 ```
-feature/issue-#* → staging-#* → develop → main
+feature/issue-#* → staging-#* → main
 ```
 
 ## ブランチ構成
@@ -13,27 +13,21 @@ feature/issue-#* → staging-#* → develop → main
 | ブランチ | 説明 | 作成元 | マージ先 |
 |----------|------|--------|----------|
 | `main` | 本番環境 | - | - |
-| `develop` | 開発統合 | main | main |
-| `staging` | プレースホルダー | develop | - |
-| `staging-#{PR番号}` | 機能検証 | develop (自動) | develop |
-| `feature/issue-#{issue番号}` | 機能開発 | develop | staging-#* |
+| `staging-#{PR番号}` | 機能検証 | main (自動) | main |
+| `feature/issue-#{issue番号}` | 機能開発 | main | staging-#* |
 
 ## ブランチフロー図
 
 ```
 main ─────────────────────────────────────────────────────▶
   │                                              ▲
-  │                                              │ マージ
+  │                                              │ squash マージ
   ▼                                              │
-develop ──────────────────────────────────────────┴───────▶
+staging-#4 ──────────────────────────────────────┴────────▶
   │                              ▲
   │                              │ マージ
   ▼                              │
-staging-#4 ──────────────────────┴────────────────────────▶
-  │              ▲
-  │              │ マージ
-  ▼              │
-feature/issue-#1 ┴────────────────────────────────────────▶
+feature/issue-#1 ────────────────┴────────────────────────▶
 ```
 
 ## 命名規則
@@ -59,16 +53,14 @@ staging-#{PR番号}
 - `staging-#4`
 - `staging-#15`
 
-> **注**: `staging` (番号なし) はプレースホルダーとして使用され、直接マージされることはありません。
-
 ## ワークフロー
 
 ### 1. 機能開発の開始
 
 ```bash
-# develop から feature ブランチを作成
-git fetch origin develop
-git checkout -b feature/issue-#123 origin/develop
+# main から feature ブランチを作成
+git fetch origin main
+git checkout -b feature/issue-#123 origin/main
 
 # 作業・コミット
 git add .
@@ -78,13 +70,13 @@ git commit -m "feat: 機能の実装"
 git push -u origin feature/issue-#123
 ```
 
-### 2. PR 作成 (feature → staging)
+### 2. PR 作成 (feature → main)
 
 1. GitHub で PR を作成
-2. **Base ブランチ**: `staging` (プレースホルダー) を選択
+2. **Base ブランチ**: `main` を選択
 3. **Head ブランチ**: `feature/issue-#123` を選択
 4. PR 作成後、GitHub Actions が自動で:
-   - `staging-#{PR番号}` を develop から作成
+   - `staging-#{PR番号}` を main から作成
    - PR のベースを `staging-#{PR番号}` に変更
 
 ### 3. コードレビュー・マージ (feature → staging)
@@ -95,65 +87,65 @@ git push -u origin feature/issue-#123
 - テストの妥当性
 
 ```bash
-# レビュー後、GitHub でマージ
+# レビュー後、GitHub でマージ（通常のマージ）
 # feature ブランチは削除可能
 ```
 
-### 4. PR 作成 (staging → develop)
+### 4. PR 作成・マージ (staging → main)
 
 ```bash
-# staging-#4 から develop への PR を作成
-gh pr create --base develop --head staging-#4 --title "Issue #1: 機能の統合"
+# staging-#4 から main への PR を作成
+gh pr create --base main --head staging-#4 --title "Issue #1: 機能の統合"
 ```
 
 **レビュー観点**:
 - Issue/機能要件が正しく実装されているか
-- 他の機能との整合性
-
-### 5. PR 作成 (develop → main)
-
-```bash
-# develop から main への PR を作成
-gh pr create --base main --head develop --title "Release 2025-01-22"
-```
-
-**レビュー観点**:
 - リリース可否の判断
 - 本番環境への影響確認
-- リリースタイミングの妥当性
 
-## 禁止事項
-
-| 操作 | 理由 |
-|------|------|
-| `feature/*` → `develop` への直接 PR | staging での検証をスキップしてしまう |
-| `feature/*` → `main` への直接 PR | develop での統合をスキップしてしまう |
-| `staging-#*` → `main` への直接 PR | develop での統合をスキップしてしまう |
-| 共有ブランチでのリベース | 履歴の改変により他の開発者に影響 |
-| force push | 履歴の改変により他の開発者に影響 |
+**マージ時**: **squash マージ**を使用し、staging の複数コミットを単一コミットに圧縮
 
 ## マージ方式
 
 | 統合 | 方式 | 理由 |
 |------|------|------|
-| feature → staging | マージ | 機能単位の履歴を保持 |
-| staging → develop | マージ | 検証単位の履歴を保持 |
-| develop → main | マージ | リリース単位の履歴を保持 |
+| feature → staging | **マージ** | 機能開発の履歴を保持（デバッグ時に有用） |
+| staging → main | **squash マージ** | mainの履歴をクリーンに保つ（1機能 = 1コミット） |
 
-> **リベースの使用**: ローカルでの未プッシュコミット整理のみ許可
+> **この独自戦略のメリット**:
+> - staging-#* では詳細な開発履歴を参照可能
+> - main では機能単位のクリーンな履歴を維持
+> - 両方の利点を活かしたハイブリッドアプローチ
+
+## リリース管理
+
+バージョン管理はリリースタグで行います。
+
+```bash
+# リリースタグの作成
+git tag -a v1.0.0 -m "Release v1.0.0"
+git push origin v1.0.0
+```
+
+### セマンティックバージョニング
+
+| バージョン | 説明 |
+|-----------|------|
+| `v1.0.0` → `v1.0.1` | パッチ（バグ修正） |
+| `v1.0.0` → `v1.1.0` | マイナー（新機能、後方互換） |
+| `v1.0.0` → `v2.0.0` | メジャー（破壊的変更） |
+
+## 禁止事項
+
+| 操作 | 理由 |
+|------|------|
+| `feature/*` → `main` への直接マージ | staging での検証をスキップしてしまう |
+| 共有ブランチでのリベース | 履歴の改変により他の開発者に影響 |
+| force push | 履歴の改変により他の開発者に影響 |
 
 ## ブランチ保護ルール
 
 ### main
-
-- PR 必須
-- レビュー必須 (1人以上)
-- ステータスチェック必須
-- force push 禁止
-- 削除禁止
-- `develop` からのマージのみ許可
-
-### develop
 
 - PR 必須
 - レビュー必須 (1人以上)
@@ -170,36 +162,21 @@ gh pr create --base main --head develop --title "Release 2025-01-22"
 - force push 禁止
 - `feature/issue-#*` からのマージのみ許可
 
-### staging (プレースホルダー)
-
-- 直接プッシュ禁止
-- PR 作成時のベースブランチとしてのみ使用
-- マージされることはない
-
 ## GitHub Actions
 
 ### create-staging-branch.yml
 
-- **トリガー**: `staging` へのPR作成時
+- **トリガー**: `main` へのPR作成時
+- **条件**: ソースブランチが `feature/issue-#*` 形式の場合のみ
 - **動作**:
   1. ソースブランチが `feature/issue-#*` 形式か検証
-  2. `staging-#{PR番号}` を develop から作成
+  2. `staging-#{PR番号}` を main から作成
   3. PR のベースブランチを変更
 
 ### validate-pr-to-main.yml
 
 - **トリガー**: `main` へのPR
-- **動作**: ソースが `develop` か検証
-
-### validate-pr-to-develop.yml
-
-- **トリガー**: `develop` へのPR
 - **動作**: ソースが `staging-#*` か検証
-
-### validate-pr-to-staging.yml
-
-- **トリガー**: `staging-#*` へのPR
-- **動作**: ソースが `feature/issue-#*` か検証
 
 ## Git Hooks (ローカル検証)
 
@@ -217,13 +194,12 @@ git config core.hooksPath .githooks
 | Hook | タイミング | チェック内容 | 動作 |
 |------|-----------|-------------|------|
 | pre-commit | コミット前 | ブランチ名の命名規則 | 警告 |
-| pre-commit | コミット前 | 保護ブランチへの直接コミット | 警告 |
+| pre-commit | コミット前 | mainへの直接コミット | 警告 |
 | commit-msg | コミット後 | Conventional Commits形式 | 警告 |
 | commit-msg | コミット後 | 1行目が72文字以内 | 警告 |
 | pre-push | プッシュ前 | ブランチ名の命名規則 | **エラー** |
-| pre-push | プッシュ前 | featureがdevelopから遅れている | 警告 |
-| pre-push | プッシュ前 | 保護ブランチへの直接プッシュ | 警告 |
-| pre-push | プッシュ前 | stagingプレースホルダーへのプッシュ | **エラー** |
+| pre-push | プッシュ前 | featureがmainから遅れている | 警告 |
+| pre-push | プッシュ前 | mainへの直接プッシュ | 警告 |
 
 ### Conventional Commits
 
@@ -262,17 +238,7 @@ git commit --no-verify -m "message"
 git push --no-verify
 ```
 
-## Claude Code Skills
-
-| コマンド | 説明 |
-|----------|------|
-| `/feature <issue番号> [説明]` | feature ブランチを作成 |
-| `/pr [タイトル]` | feature → staging PR を作成 |
-| `/staging-pr <PR番号> [タイトル]` | staging → develop PR を作成 |
-| `/release-pr [タイトル]` | develop → main PR を作成 |
-| `/branch-status` | 現在のブランチ状況を表示 |
-
-## 複数 staging の運用
+## 複数 staging の並行運用
 
 リリース時期が異なる機能を並行開発する場合、複数の staging ブランチを使用できます。
 
@@ -283,24 +249,15 @@ staging-#10 ← feature/issue-#8 (v1.2 リリース向け)
 ```
 
 **マージ順序の例**:
-1. `staging-#4` → `develop` → `main` (v1.1 リリース)
-2. `staging-#7`, `staging-#10` → `develop` → `main` (v1.2 リリース)
+1. `staging-#4` → `main` (v1.1 リリース、タグ: v1.1.0)
+2. `staging-#7`, `staging-#10` → `main` (v1.2 リリース、タグ: v1.2.0)
 
 ## トラブルシューティング
 
-### PR作成時に「staging ブランチが見つからない」
-
-`staging` プレースホルダーブランチが存在するか確認してください。
-
-```bash
-git fetch origin
-git branch -r | grep staging
-```
-
-### GitHub Actions が staging ブランチを作成しない
+### PR作成時に staging ブランチが自動作成されない
 
 1. ソースブランチが `feature/issue-#*` 形式か確認
-2. ターゲットブランチが `staging` (プレースホルダー) か確認
+2. ターゲットブランチが `main` か確認
 3. Actions のログを確認
 
 ### 間違ったブランチにマージしてしまった
@@ -348,7 +305,7 @@ git push -u origin feature/issue-#123
 
 ## ブランチ戦略の比較
 
-本リポジトリの4層ブランチ戦略と、世界で広く使われている他のブランチ戦略を比較します。
+本リポジトリの2層ブランチ戦略と、世界で広く使われている他のブランチ戦略を比較します。
 
 ### 主要なブランチ戦略
 
@@ -416,28 +373,44 @@ main ←── staging ←── feature
 | デメリット | 環境ブランチのアンチパターン問題 |
 | 適用 | 中規模チーム、環境ごとのデプロイ |
 
-#### 5. 本リポジトリの4層戦略
+#### 5. 本リポジトリの2層戦略
 
 ```
-main ←── develop ←── staging-#* ←── feature/issue-#*
+main ←── staging-#* ←── feature/issue-#*
 ```
 
 | 項目 | 内容 |
 |------|------|
-| 特徴 | PR番号付きstagingブランチ、自動作成 |
-| メリット | 並行検証が可能、Issue追跡が明確 |
+| 特徴 | PR番号付きstagingブランチ、自動作成、ハイブリッドマージ |
+| メリット | 並行検証が可能、Issue追跡が明確、履歴管理が柔軟 |
 | デメリット | 独自戦略のため学習コスト |
 | 適用 | 中規模チーム、レビュー重視、並行開発 |
 
 ### 戦略比較マトリクス
 
-| 戦略 | ブランチ数 | 複雑度 | CI/CD適性 | 並行開発 | リリース管理 |
-|------|-----------|--------|-----------|----------|--------------|
-| Trunk-Based | 1 (+ 短命) | 低 | ◎ | △ | Feature Flag |
-| GitHub Flow | 1 (+ 短命) | 低 | ◎ | △ | 継続的 |
-| GitFlow | 5+ | 高 | △ | ◎ | 計画的 |
-| GitLab Flow | 2-3 | 中 | ○ | ○ | 環境連動 |
-| **本戦略** | 3 (+ 動的) | 中 | ○ | ◎ | 段階的 |
+| 戦略 | PR数 | 複雑度 | CI/CD適性 | 並行開発 | 履歴の見やすさ |
+|------|------|--------|-----------|----------|----------------|
+| Trunk-Based | 1 | 低 | ◎ | △ | △ |
+| GitHub Flow | 1 | 低 | ◎ | △ | △ |
+| GitFlow | 3+ | 高 | △ | ◎ | ○ |
+| GitLab Flow | 2 | 中 | ○ | ○ | ○ |
+| **本戦略** | 2 | 中 | ○ | ◎ | ◎ |
+
+### 本戦略の独自性：ハイブリッドマージ
+
+本戦略の最大の特徴は、**マージ方式を段階で使い分ける**点です。
+
+```
+feature/issue-#1 ──(マージ)──▶ staging-#4 ──(squash)──▶ main
+      │                              │                    │
+      ▼                              ▼                    ▼
+   詳細な履歴を保持         履歴を参照可能        クリーンな履歴
+```
+
+**メリット**:
+- staging-#* では開発中の詳細なコミット履歴を参照可能（デバッグに有用）
+- main では1機能 = 1コミットのクリーンな履歴を維持
+- `git bisect` や `git blame` が main 上で効果的に機能
 
 ### 環境ブランチのアンチパターン
 
@@ -450,7 +423,7 @@ main ←── develop ←── staging-#* ←── feature/issue-#*
 
 **本戦略での対応**:
 - `staging-#*` は**環境ブランチではなくレビューブランチ**
-- 同一コードがそのままdevelop → mainへ流れる
+- 同一コードがそのままmainへ流れる
 - staging-#*は検証完了後に削除される短命ブランチ
 
 ### 業界トレンド (2024-2025)
@@ -479,9 +452,11 @@ main ←── develop ←── staging-#* ←── feature/issue-#*
 ```
 
 **本戦略の特徴**:
-- GitFlowほど複雑ではないが、GitHub Flowより段階的なレビューが可能
-- PR番号に紐づくstagingブランチで並行検証をサポート
+- GitHub Flow のシンプルさを維持しつつ、レビュー層を追加
+- GitFlow ほど複雑ではないが、並行開発をサポート
+- PR番号に紐づくstagingブランチで機能単位の追跡が明確
 - 環境ブランチのアンチパターンを回避（staging-#*は短命）
+- ハイブリッドマージで履歴管理の柔軟性を確保
 
 ### 戦略選択のガイドライン
 
@@ -490,7 +465,7 @@ main ←── develop ←── staging-#* ←── feature/issue-#*
 | 経験豊富 + 高度なCI/CD | Trunk-Based |
 | 小規模 + 高速リリース | GitHub Flow |
 | 大規模 + 規制産業 | GitFlow |
-| 中規模 + レビュー重視 | **本戦略** または GitLab Flow |
+| 中規模 + レビュー重視 + 並行開発 | **本戦略** |
 
 ### 参考資料
 
