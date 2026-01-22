@@ -1,0 +1,3 @@
+This is a sample file for demonstrating the branch workflow.
+
+Created in feature/issue-#1 branch.
