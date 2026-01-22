@@ -345,3 +345,157 @@ git branch -m old-branch-name feature/issue-#123
 git push origin --delete old-branch-name
 git push -u origin feature/issue-#123
 ```
+
+## ブランチ戦略の比較
+
+本リポジトリの4層ブランチ戦略と、世界で広く使われている他のブランチ戦略を比較します。
+
+### 主要なブランチ戦略
+
+#### 1. Trunk-Based Development (トランクベース開発)
+
+**採用企業**: Google, Facebook (Meta), Microsoft
+
+```
+main (trunk) ←── feature (短命)
+```
+
+| 項目 | 内容 |
+|------|------|
+| 特徴 | 単一の永続ブランチ、短命なfeatureブランチ |
+| メリット | マージ競合が少ない、CI/CDとの親和性が高い |
+| デメリット | 高度なCI/CD基盤と経験豊富なチームが必要 |
+| 適用 | 大規模組織、継続的デプロイ、モノレポ |
+
+> Googleは1日40,000以上のコミットを単一トランクで管理
+
+#### 2. GitHub Flow
+
+**採用企業**: GitHub, 多くのスタートアップ
+
+```
+main ←── feature
+```
+
+| 項目 | 内容 |
+|------|------|
+| 特徴 | シンプル、mainへの直接マージ |
+| メリット | 学習コストが低い、高速なリリース |
+| デメリット | 複数バージョンの並行管理が困難 |
+| 適用 | 小規模チーム、SaaS、継続的デリバリー |
+
+#### 3. GitFlow
+
+**提唱者**: Vincent Driessen (2010年)
+
+```
+main ←── release ←── develop ←── feature
+                              ←── hotfix
+```
+
+| 項目 | 内容 |
+|------|------|
+| 特徴 | 複数の永続ブランチ、明確な役割分担 |
+| メリット | 複数バージョンの並行管理、明確なリリース管理 |
+| デメリット | 複雑、CI/CDとの親和性が低い |
+| 適用 | 大規模チーム、計画的リリース、規制産業 |
+
+> 2020年、提唱者自身がGitHub Flowを推奨するようになった
+
+#### 4. GitLab Flow
+
+```
+main ←── staging ←── feature
+     ←── production
+```
+
+| 項目 | 内容 |
+|------|------|
+| 特徴 | 環境ブランチ、upstream first ポリシー |
+| メリット | GitFlowより簡潔、環境との対応が明確 |
+| デメリット | 環境ブランチのアンチパターン問題 |
+| 適用 | 中規模チーム、環境ごとのデプロイ |
+
+#### 5. 本リポジトリの4層戦略
+
+```
+main ←── develop ←── staging-#* ←── feature/issue-#*
+```
+
+| 項目 | 内容 |
+|------|------|
+| 特徴 | PR番号付きstagingブランチ、自動作成 |
+| メリット | 並行検証が可能、Issue追跡が明確 |
+| デメリット | 独自戦略のため学習コスト |
+| 適用 | 中規模チーム、レビュー重視、並行開発 |
+
+### 戦略比較マトリクス
+
+| 戦略 | ブランチ数 | 複雑度 | CI/CD適性 | 並行開発 | リリース管理 |
+|------|-----------|--------|-----------|----------|--------------|
+| Trunk-Based | 1 (+ 短命) | 低 | ◎ | △ | Feature Flag |
+| GitHub Flow | 1 (+ 短命) | 低 | ◎ | △ | 継続的 |
+| GitFlow | 5+ | 高 | △ | ◎ | 計画的 |
+| GitLab Flow | 2-3 | 中 | ○ | ○ | 環境連動 |
+| **本戦略** | 3 (+ 動的) | 中 | ○ | ◎ | 段階的 |
+
+### 環境ブランチのアンチパターン
+
+近年、環境ごとにブランチを分ける戦略（dev/staging/prod）は**アンチパターン**として指摘されています。
+
+**問題点**:
+- 同一コードが各環境で異なるバイナリになるリスク
+- Cherry-pickによる複雑なマージ管理
+- 環境固有のコードによる構成ドリフト
+
+**本戦略での対応**:
+- `staging-#*` は**環境ブランチではなくレビューブランチ**
+- 同一コードがそのままdevelop → mainへ流れる
+- staging-#*は検証完了後に削除される短命ブランチ
+
+### 業界トレンド (2024-2025)
+
+1. **Trunk-Based Development の台頭**
+   - GitFlowの人気は低下傾向
+   - Google, Facebook, Microsoftなど大企業が採用
+
+2. **Feature Flag の普及**
+   - ブランチではなくフラグでリリース制御
+   - LaunchDarkly, Flagsmith などのツール
+
+3. **モノレポの増加**
+   - 複数プロジェクトを単一リポジトリで管理
+   - Bazel, Pants, Buck などのビルドツール
+
+### 本戦略の位置づけ
+
+```
+シンプル ◀──────────────────────────────────▶ 複雑
+         GitHub Flow    本戦略    GitFlow
+              │            │          │
+              ▼            ▼          ▼
+         継続的         段階的      計画的
+         デリバリー     レビュー    リリース
+```
+
+**本戦略の特徴**:
+- GitFlowほど複雑ではないが、GitHub Flowより段階的なレビューが可能
+- PR番号に紐づくstagingブランチで並行検証をサポート
+- 環境ブランチのアンチパターンを回避（staging-#*は短命）
+
+### 戦略選択のガイドライン
+
+| チーム状況 | 推奨戦略 |
+|-----------|----------|
+| 経験豊富 + 高度なCI/CD | Trunk-Based |
+| 小規模 + 高速リリース | GitHub Flow |
+| 大規模 + 規制産業 | GitFlow |
+| 中規模 + レビュー重視 | **本戦略** または GitLab Flow |
+
+### 参考資料
+
+- [Atlassian Git Tutorials - Gitflow Workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow)
+- [Trunk Based Development](https://trunkbaseddevelopment.com/)
+- [GitLab Flow Best Practices](https://about.gitlab.com/topics/version-control/what-are-gitlab-flow-best-practices/)
+- [Martin Fowler - Patterns for Managing Source Code Branches](https://martinfowler.com/articles/branching-patterns.html)
+- [Stop Using Branches for Deploying to Different GitOps Environments](https://codefresh.io/blog/stop-using-branches-deploying-different-gitops-environments/)
