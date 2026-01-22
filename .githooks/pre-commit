@@ -18,8 +18,6 @@ current_branch=$(git rev-parse --abbrev-ref HEAD)
 # -----------------------------------------------------------------------------
 valid_patterns=(
   "^main$"
-  "^develop$"
-  "^staging$"
   "^staging-#[0-9]+$"
   "^feature/issue-#[0-9]+(-.*)?$"
 )
@@ -35,6 +33,8 @@ done
 if [[ "$is_valid" == false ]]; then
   echo -e "${YELLOW}⚠️  Warning: ブランチ名が命名規則に従っていません: $current_branch${NC}"
   echo "   許可されるパターン:"
+  echo "   - main"
+  echo "   - staging-#{PR番号}  (例: staging-#4)"
   echo "   - feature/issue-#{issue番号}  (例: feature/issue-#123)"
   echo ""
 fi
@@ -42,15 +42,11 @@ fi
 # -----------------------------------------------------------------------------
 # 2. 保護ブランチへの直接コミット警告
 # -----------------------------------------------------------------------------
-protected_branches=("main" "develop" "staging")
-
-for protected in "${protected_branches[@]}"; do
-  if [[ "$current_branch" == "$protected" ]]; then
-    echo -e "${YELLOW}⚠️  Warning: ${protected} ブランチへの直接コミット${NC}"
-    echo "   featureブランチで作業することを推奨します"
-    echo ""
-    # exit 1  # 厳格にする場合はコメントを外す
-  fi
-done
+if [[ "$current_branch" == "main" ]]; then
+  echo -e "${YELLOW}⚠️  Warning: main ブランチへの直接コミット${NC}"
+  echo "   featureブランチで作業することを推奨します"
+  echo ""
+  # exit 1  # 厳格にする場合はコメントを外す
+fi
 
 exit 0
