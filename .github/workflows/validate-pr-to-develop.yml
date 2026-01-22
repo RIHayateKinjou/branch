@@ -9,8 +9,6 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    # feature ブランチからのPRはスキップ（create-staging-branch.yml が処理する）
-    if: ${{ !startsWith(github.head_ref, 'feature/') }}
 
     steps:
       - name: Validate source branch
