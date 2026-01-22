@@ -201,6 +201,67 @@ gh pr create --base main --head develop --title "Release 2025-01-22"
 - **トリガー**: `staging-#*` へのPR
 - **動作**: ソースが `feature/issue-#*` か検証
 
+## Git Hooks (ローカル検証)
+
+コミット・プッシュ時にブランチ運用ルールをローカルで検証するGit Hooksを提供しています。
+
+### セットアップ
+
+```bash
+# hooks ディレクトリを設定
+git config core.hooksPath .githooks
+```
+
+### 提供されるHooks
+
+| Hook | タイミング | チェック内容 | 動作 |
+|------|-----------|-------------|------|
+| pre-commit | コミット前 | ブランチ名の命名規則 | 警告 |
+| pre-commit | コミット前 | 保護ブランチへの直接コミット | 警告 |
+| commit-msg | コミット後 | Conventional Commits形式 | 警告 |
+| commit-msg | コミット後 | 1行目が72文字以内 | 警告 |
+| pre-push | プッシュ前 | ブランチ名の命名規則 | **エラー** |
+| pre-push | プッシュ前 | featureがdevelopから遅れている | 警告 |
+| pre-push | プッシュ前 | 保護ブランチへの直接プッシュ | 警告 |
+| pre-push | プッシュ前 | stagingプレースホルダーへのプッシュ | **エラー** |
+
+### Conventional Commits
+
+推奨されるコミットメッセージ形式:
+
+```
+<type>(<scope>): <description>
+```
+
+| タイプ | 説明 |
+|--------|------|
+| `feat` | 新機能 |
+| `fix` | バグ修正 |
+| `docs` | ドキュメントのみの変更 |
+| `style` | コードの意味に影響しない変更 |
+| `refactor` | バグ修正や機能追加ではないコード変更 |
+| `perf` | パフォーマンス改善 |
+| `test` | テストの追加・修正 |
+| `build` | ビルドシステムや外部依存の変更 |
+| `ci` | CI設定ファイルやスクリプトの変更 |
+| `chore` | その他の変更 |
+
+**例**:
+- `feat: ログイン機能を追加`
+- `fix(auth): トークン検証のバグを修正`
+
+### Hooksのスキップ
+
+一時的にHooksを無効にする場合:
+
+```bash
+# 特定のコミットでスキップ
+git commit --no-verify -m "message"
+
+# 特定のプッシュでスキップ
+git push --no-verify
+```
+
 ## Claude Code Skills
 
 | コマンド | 説明 |
@@ -247,3 +308,40 @@ git branch -r | grep staging
 1. マージコミットを特定
 2. revert PR を作成
 3. 正しいブランチに再度 PR を作成
+
+### Git Hooks が動作しない
+
+1. hooks パスが設定されているか確認:
+   ```bash
+   git config core.hooksPath
+   # .githooks と表示されればOK
+   ```
+
+2. 設定されていない場合:
+   ```bash
+   git config core.hooksPath .githooks
+   ```
+
+3. 実行権限を確認:
+   ```bash
+   ls -la .githooks/
+   # -rwxr-xr-x と表示されればOK
+   ```
+
+4. 実行権限がない場合:
+   ```bash
+   chmod +x .githooks/*
+   ```
+
+### プッシュ時に「ブランチ名が命名規則に従っていません」エラー
+
+ブランチ名を正しい形式に変更してください:
+
+```bash
+# 現在のブランチ名を変更
+git branch -m old-branch-name feature/issue-#123
+
+# リモートの古いブランチを削除して新しい名前でプッシュ
+git push origin --delete old-branch-name
+git push -u origin feature/issue-#123
+```
