@@ -31,7 +31,7 @@ jobs:
       - name: Create staging branch
         run: |
           PR_NUMBER=${{ github.event.pull_request.number }}
-          STAGING_BRANCH="staging-${PR_NUMBER}"
+          STAGING_BRANCH="staging-#${PR_NUMBER}"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
