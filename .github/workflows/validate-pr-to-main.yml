@@ -1,0 +1,21 @@
+name: Validate PR to main
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate source branch
+        run: |
+          HEAD_BRANCH="${{ github.head_ref }}"
+          if [[ "$HEAD_BRANCH" != "develop" ]]; then
+            echo "::error::PRs to main must come from 'develop' branch. Got: $HEAD_BRANCH"
+            exit 1
+          fi
+          echo "Valid: PR from develop to main"
