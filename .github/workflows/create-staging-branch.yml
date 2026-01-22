@@ -1,0 +1,57 @@
+name: Create Staging Branch
+
+on:
+  pull_request:
+    types: [opened]
+    branches:
+      - develop
+
+jobs:
+  create-staging:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate source branch
+        run: |
+          HEAD_BRANCH="${{ github.head_ref }}"
+          if [[ ! "$HEAD_BRANCH" =~ ^feature/issue-#[0-9]+(-.*)?$ ]]; then
+            echo "::error::Source branch must follow 'feature/issue-#{number}' pattern. Got: $HEAD_BRANCH"
+            exit 1
+          fi
+          echo "Valid source branch: $HEAD_BRANCH"
+
+      - name: Create staging branch
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          STAGING_BRANCH="staging-${PR_NUMBER}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if staging branch already exists
+          if git ls-remote --heads origin "$STAGING_BRANCH" | grep -q "$STAGING_BRANCH"; then
+            echo "Staging branch already exists: $STAGING_BRANCH"
+          else
+            # Create staging branch from develop
+            git checkout develop
+            git checkout -b "$STAGING_BRANCH"
+            git push origin "$STAGING_BRANCH"
+            echo "Created branch: $STAGING_BRANCH"
+          fi
+
+          echo "STAGING_BRANCH=$STAGING_BRANCH" >> $GITHUB_ENV
+
+      - name: Update PR base branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} --base "$STAGING_BRANCH"
+          echo "Updated PR #${{ github.event.pull_request.number }} base branch to $STAGING_BRANCH"
