@@ -1,0 +1,6 @@
+Branch Workflow Test
+
+Created: feature/issue-#5-demo
+Target: staging (placeholder) -> staging-#{PR番号}
+
+This file demonstrates the branch workflow.
