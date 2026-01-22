@@ -174,8 +174,14 @@ git push origin v1.0.0
 
 ### validate-pr-to-main.yml
 
-- **トリガー**: `main` へのPR
+- **トリガー**: `main` へのPR（featureブランチからの場合はスキップ）
 - **動作**: ソースが `staging-#*` か検証
+
+### cleanup-staging-branch.yml
+
+- **トリガー**: `staging-#*` へのPRがクローズされた時
+- **条件**: マージされずにクローズされた場合のみ
+- **動作**: 不要になった `staging-#*` ブランチを自動削除
 
 ## Git Hooks (ローカル検証)
 
