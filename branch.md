@@ -158,7 +158,6 @@ git push origin v1.0.0
 
 - PR 必須
 - レビュー必須 (1人以上)
-- ステータスチェック必須
 - force push 禁止
 - `feature/issue-#*` からのマージのみ許可
 
