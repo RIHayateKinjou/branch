@@ -1,0 +1,24 @@
+{
+  "skills": {
+    "feature": {
+      "description": "Issue番号を指定してfeatureブランチを作成する",
+      "file": "skills/feature.md"
+    },
+    "pr": {
+      "description": "現在のfeatureブランチからPRを作成する",
+      "file": "skills/pr.md"
+    },
+    "staging-pr": {
+      "description": "stagingブランチからdevelopへのPRを作成する",
+      "file": "skills/staging-pr.md"
+    },
+    "release-pr": {
+      "description": "developからmainへのリリースPRを作成する",
+      "file": "skills/release-pr.md"
+    },
+    "branch-status": {
+      "description": "現在のブランチ状況を表示する",
+      "file": "skills/branch-status.md"
+    }
+  }
+}
