@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  validate:
+  validate-main:
     runs-on: ubuntu-latest
 
     steps:
