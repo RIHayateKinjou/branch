@@ -9,6 +9,8 @@ on:
 jobs:
   validate-main:
     runs-on: ubuntu-latest
+    # Skip validation for feature branches (they will be redirected to staging-#* by create-staging-branch.yml)
+    if: ${{ !startsWith(github.head_ref, 'feature/issue-#') }}
 
     steps:
       - name: Validate source branch

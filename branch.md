@@ -158,7 +158,6 @@ git push origin v1.0.0
 
 - PR 必須
 - レビュー必須 (1人以上)
-- ステータスチェック必須
 - force push 禁止
 - `feature/issue-#*` からのマージのみ許可
 
@@ -175,8 +174,14 @@ git push origin v1.0.0
 
 ### validate-pr-to-main.yml
 
-- **トリガー**: `main` へのPR
+- **トリガー**: `main` へのPR（featureブランチからの場合はスキップ）
 - **動作**: ソースが `staging-#*` か検証
+
+### cleanup-staging-branch.yml
+
+- **トリガー**: `staging-#*` へのPRがクローズされた時
+- **条件**: マージされずにクローズされた場合のみ
+- **動作**: 不要になった `staging-#*` ブランチを自動削除
 
 ## Git Hooks (ローカル検証)
 
