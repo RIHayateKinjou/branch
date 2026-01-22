@@ -1,0 +1,106 @@
+#!/bin/bash
+# =============================================================================
+# pre-push hook - プッシュ前のブランチ運用チェック
+# =============================================================================
+
+set -e
+
+# 色の定義
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+echo "🔍 ブランチ運用チェック: $current_branch"
+
+# -----------------------------------------------------------------------------
+# 1. ブランチ名の検証
+# -----------------------------------------------------------------------------
+valid_patterns=(
+  "^main$"
+  "^develop$"
+  "^staging$"
+  "^staging-#[0-9]+$"
+  "^feature/issue-#[0-9]+(-.*)?$"
+)
+
+is_valid=false
+for pattern in "${valid_patterns[@]}"; do
+  if [[ "$current_branch" =~ $pattern ]]; then
+    is_valid=true
+    break
+  fi
+done
+
+if [[ "$is_valid" == false ]]; then
+  echo -e "${RED}❌ Error: ブランチ名が命名規則に従っていません${NC}"
+  echo "   現在: $current_branch"
+  echo ""
+  echo "   許可されるパターン:"
+  echo "   - main"
+  echo "   - develop"
+  echo "   - staging"
+  echo "   - staging-#{PR番号}  (例: staging-#4)"
+  echo "   - feature/issue-#{issue番号}  (例: feature/issue-#123)"
+  echo "   - feature/issue-#{issue番号}-{説明}  (例: feature/issue-#123-add-login)"
+  exit 1
+fi
+
+echo -e "${GREEN}✓${NC} ブランチ名: OK"
+
+# -----------------------------------------------------------------------------
+# 2. featureブランチの分岐元チェック
+# -----------------------------------------------------------------------------
+if [[ "$current_branch" =~ ^feature/issue-#[0-9]+ ]]; then
+  # リモートのdevelopを取得
+  git fetch origin develop --quiet 2>/dev/null || true
+
+  if git rev-parse origin/develop >/dev/null 2>&1; then
+    merge_base=$(git merge-base HEAD origin/develop 2>/dev/null || echo "")
+    develop_head=$(git rev-parse origin/develop 2>/dev/null || echo "")
+
+    if [[ -n "$merge_base" && -n "$develop_head" ]]; then
+      # developの最新コミットが祖先に含まれているかチェック
+      if ! git merge-base --is-ancestor origin/develop HEAD 2>/dev/null; then
+        # 分岐点からdevelopがどれだけ進んでいるか
+        behind_count=$(git rev-list --count "$merge_base..origin/develop" 2>/dev/null || echo "0")
+
+        if [[ "$behind_count" -gt 0 ]]; then
+          echo -e "${YELLOW}⚠️  Warning: developブランチから ${behind_count} コミット遅れています${NC}"
+          echo "   最新のdevelopを取り込むことを検討してください:"
+          echo "   git fetch origin develop && git rebase origin/develop"
+        fi
+      else
+        echo -e "${GREEN}✓${NC} develop分岐: 最新"
+      fi
+    fi
+  fi
+fi
+
+# -----------------------------------------------------------------------------
+# 3. 直接プッシュの禁止チェック
+# -----------------------------------------------------------------------------
+protected_branches=("main" "develop")
+
+for protected in "${protected_branches[@]}"; do
+  if [[ "$current_branch" == "$protected" ]]; then
+    echo -e "${YELLOW}⚠️  Warning: ${protected} への直接プッシュは推奨されません${NC}"
+    echo "   PRを通じてマージしてください"
+    # exit 1  # 厳格にする場合はコメントを外す
+  fi
+done
+
+# -----------------------------------------------------------------------------
+# 4. stagingプレースホルダーへのプッシュ禁止
+# -----------------------------------------------------------------------------
+if [[ "$current_branch" == "staging" ]]; then
+  echo -e "${RED}❌ Error: staging (プレースホルダー) への直接プッシュは禁止されています${NC}"
+  echo "   staging-#{PR番号} ブランチを使用してください"
+  exit 1
+fi
+
+echo ""
+echo -e "${GREEN}✅ ブランチ運用チェック: すべてパス${NC}"
+exit 0
