@@ -1,0 +1,52 @@
+#!/bin/bash
+# =============================================================================
+# pre-commit hook - コミット前のブランチ運用チェック
+# =============================================================================
+
+set -e
+
+# 色の定義
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+# -----------------------------------------------------------------------------
+# 1. ブランチ名の検証（警告のみ）
+# -----------------------------------------------------------------------------
+valid_patterns=(
+  "^main$"
+  "^staging-#[0-9]+$"
+  "^feature/issue-#[0-9]+(-.*)?$"
+)
+
+is_valid=false
+for pattern in "${valid_patterns[@]}"; do
+  if [[ "$current_branch" =~ $pattern ]]; then
+    is_valid=true
+    break
+  fi
+done
+
+if [[ "$is_valid" == false ]]; then
+  echo -e "${YELLOW}⚠️  Warning: ブランチ名が命名規則に従っていません: $current_branch${NC}"
+  echo "   許可されるパターン:"
+  echo "   - main"
+  echo "   - staging-#{PR番号}  (例: staging-#4)"
+  echo "   - feature/issue-#{issue番号}  (例: feature/issue-#123)"
+  echo ""
+fi
+
+# -----------------------------------------------------------------------------
+# 2. 保護ブランチへの直接コミット警告
+# -----------------------------------------------------------------------------
+if [[ "$current_branch" == "main" ]]; then
+  echo -e "${YELLOW}⚠️  Warning: main ブランチへの直接コミット${NC}"
+  echo "   featureブランチで作業することを推奨します"
+  echo ""
+  # exit 1  # 厳格にする場合はコメントを外す
+fi
+
+exit 0
