@@ -1,0 +1,28 @@
+name: Cleanup Staging Branch
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup-staging:
+    runs-on: ubuntu-latest
+    # Only run when PR to staging-#* is closed without merge
+    if: |
+      startsWith(github.base_ref, 'staging-#') &&
+      github.event.pull_request.merged == false
+    permissions:
+      contents: write
+
+    steps:
+      - name: Delete staging branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          STAGING_BRANCH="${{ github.base_ref }}"
+          echo "PR was closed without merge. Deleting staging branch: $STAGING_BRANCH"
+
+          # Delete the staging branch
+          gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/$STAGING_BRANCH" || true
+
+          echo "Deleted branch: $STAGING_BRANCH"

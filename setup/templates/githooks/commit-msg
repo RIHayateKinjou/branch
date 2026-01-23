@@ -1,0 +1,54 @@
+#!/bin/bash
+# =============================================================================
+# commit-msg hook - コミットメッセージの検証
+# =============================================================================
+
+commit_msg_file=$1
+commit_msg=$(cat "$commit_msg_file")
+
+# 色の定義
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+# -----------------------------------------------------------------------------
+# Conventional Commits形式の検証（オプション）
+# -----------------------------------------------------------------------------
+# 有効なプレフィックス
+valid_prefixes="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?!?:"
+
+if [[ ! "$commit_msg" =~ $valid_prefixes ]]; then
+  echo -e "${YELLOW}⚠️  Warning: コミットメッセージがConventional Commits形式ではありません${NC}"
+  echo ""
+  echo "   推奨形式: <type>(<scope>): <description>"
+  echo ""
+  echo "   タイプ:"
+  echo "   - feat:     新機能"
+  echo "   - fix:      バグ修正"
+  echo "   - docs:     ドキュメントのみの変更"
+  echo "   - style:    コードの意味に影響しない変更（空白、フォーマット等）"
+  echo "   - refactor: バグ修正や機能追加ではないコード変更"
+  echo "   - perf:     パフォーマンス改善"
+  echo "   - test:     テストの追加・修正"
+  echo "   - build:    ビルドシステムや外部依存の変更"
+  echo "   - ci:       CI設定ファイルやスクリプトの変更"
+  echo "   - chore:    その他の変更"
+  echo ""
+  echo "   例: feat: ログイン機能を追加"
+  echo "   例: fix(auth): トークン検証のバグを修正"
+  echo ""
+  # exit 1  # 厳格にする場合はコメントを外す
+fi
+
+# -----------------------------------------------------------------------------
+# コミットメッセージの長さチェック
+# -----------------------------------------------------------------------------
+first_line=$(echo "$commit_msg" | head -n 1)
+if [[ ${#first_line} -gt 72 ]]; then
+  echo -e "${YELLOW}⚠️  Warning: コミットメッセージの1行目が72文字を超えています (${#first_line}文字)${NC}"
+  echo "   短く簡潔にすることを推奨します"
+  echo ""
+fi
+
+exit 0
